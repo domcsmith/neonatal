@@ -12,5 +12,6 @@ install.packages("Matrix", repos=r)
 install.packages("fields", repos=r)
 install.packages("e1071", repos=r)
 install.packages("caret", repos=r)
+install.packages("kernlab", repos=r)
 
 rm(r)
