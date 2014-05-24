@@ -2,7 +2,11 @@
 # Linear discriminant analysis
 # MPV was ignored in this analysis owing to too many missing values
 # Data were cleaned on 12/05/13
-setwd("~/Documents/academic/infant_blood_project/data/")
+
+setwd("~/academic/projects/infant_blood_project/")
+#source("./code/libraryInstall.R")
+source("./code/neonatalPreprocessing.R")
+
 library("MASS")
 library("klaR")
 library("glmnet")
@@ -11,15 +15,13 @@ library("Matrix")
 library("fields")
 library("e1071")
 
-setwd("~/Documents/academic/infant_blood_project/code/")
-source("neonatalPreprocessing.R")
-
 # bind norm and ds data frames on shared columns
 
 data <- rbind(data.t, data.nt)
-
-# Perform LDA on DS-DST
 data.df <- data.frame(data)
+
+#####################################################################
+# Perform LDA on DS-DST
 neo.ldafit <- lda(formula=Class ~ ., data=data.df, na.action=na.omit)
 a <- cbind(neo.ldafit$scaling, colnames(data)[-1])
 a[order(abs(as.numeric(a[,1]))),]
@@ -32,17 +34,13 @@ partimat(formula=Class ~ ., data=ds_dst.df, na.action=na.omit)
 # plotting
 plot(neo.ldafit, panel=panel.lda, cex = 0.7, dimen=2,
      abbrev = FALSE, xlab = "LD1", ylab = "LD2", type="eqscplot")
+#####################################################################
 
-
-
+#####################################################################
 #Next steps
-# REGULARIZED LOGISTIC REGRESSION ON DS-DST AND NORM-DS DATA CLASSES
-# uses glmnet
-########################
-# SET REGRESSION PARAMETERS
-
-alpha <- 1 # Elastic net mixing parameter range [0,1): 1 = lasso, 0 = ridge
-########################
+# Elastic net regularized logistic regression on TAM and no-TAM
+# uses glmnet and caret for training elastic net models
+#####################################################################
 
 library("glmnet")
 library("caret")
@@ -66,29 +64,87 @@ fitControl <- trainControl(
   repeats = 10
   )
 
-tuningGrid = expand.grid(alpha=(1:100)*0.01,
-                         lambda=exp(seq(from=-10,to=1,length.out=100))
+tuningGrid = expand.grid(alpha=(1:20)*0.05,
+                         lambda=exp(seq(from=-10,to=1,length.out=10))
                          )
 
 training.model <- train(neo.x, neo.y.factor,
                         method="glmnet",
                         trControl=fitControl,
-                        metric="Accuracy",
+                        metric="Kappa",
                         tuneGrid=tuningGrid,
                         maximize=TRUE)
 
-train.cv.fit <- training.model[4]
-
-# run logistic regression with lasso regularisation on the full ds vs dst data set
 neo.lognet_elasticnet_fit <- glmnet(neo.x.matrix,neo.y.factor,
-                               family="binomial", alpha=0.44, )
-# run cross-validated logistic regression with lasso regularisation for the ds vs dst data
-neo.lognet_elasticnet_fit.cv <- cv.glmnet(neo.x.matrix,neo.y.factor,
-                                     family="binomial", alpha=0.44)
+                                    family="binomial",
+                                    alpha=as.data.frame(training.model[6])[1,1],
+                                    lambda=as.data.frame(training.model[6])[1,2]
+                                    )
 
-# plot log(lambda) against deviance for 10-fold cross validation
-plot(neo.lognet_elasticnet_fit.cv, xlab=expression(log(lambda)), main=paste("Selecting ", expression(lambda), " through cross validation"))
+# return coefficients for optimal lambda
+y.response <- predict(neo.lognet_elasticnet_fit,
+                      newx=neo.x.matrix,
+                      type="response")
 
+y.class <- predict(neo.lognet_elasticnet_fit,
+                   newx=neo.x.matrix,
+                   type="class")
+
+y.actual <- as.matrix(neo.y)
+
+# show misclassifications and response probabilities
+misclassification.comparison <- cbind(y.class,
+                                      y.actual,
+                                      y.response)
+print(misclassification.comparison)
+
+misclassification.comparison.sorted <- misclassification.comparison[sort.list(as.numeric(misclassification.comparison[,3])),]
+
+dummy.x <- seq(1,length(misclassification.comparison[,3]))
+
+misclassified.y <- misclassification.comparison.sorted[misclassification.comparison.sorted[,1]!=misclassification.comparison.sorted[,2],]
+
+misclassified.x <- as.numeric(dummy.x[misclassification.comparison.sorted[,1]!=misclassification.comparison.sorted[,2]])
+
+png("neo_ds_dst_sigmoid.png",
+    width=4,
+    height=4,
+    units="in",
+    res=200,
+    pointsize=10)
+
+plot(dummy.x,
+     misclassification.comparison.sorted[,3],
+     pch=1,
+     xlab="Rank of Sorted Response",
+     ylab="Response")
+
+points(misclassified.x,
+       as.numeric(misclassified.y[,3]),
+       pch=16,
+       col="red")
+
+lines(x=c(-100,length(neo.y)),
+      y=c(0.5,0.5),
+      lty=2,
+      col="gray")
+
+text(misclassified.x,
+     as.numeric(misclassified.y[,3]),
+     misclassified.y[,2],
+     cex=0.6,
+     pos=4)
+
+text(x=c(20),y=c(0.2), "No TAM", pos="4", col="blue")
+text(x=c(100),y=c(0.8), "TAM", pos="4", col="blue")
+
+dev.off()
+rm("dummy.x", "dummy.y", "misclassified.x", "misclassified.y")
+
+
+######################################################################
+#OLD
+######################################################################
 
 neo.y <- neo.y[as.numeric(rownames(neo.x))] # remove NA rows from Y
 
@@ -122,11 +178,11 @@ s <- sample(x=nrow(neo.x),size=nrow(neo.x))
 neo.x.pred_sample <- as.matrix(neo.x[s,])
 
 # return coefficients for optimal lambda
-y.samp.response <- predict(neo.lognet_lasso_fit.cv,
-               newx=neo.x.pred_sample, s=neo.lognet_lasso_fit.cv$lambda.min, type="response")
-y.samp.class <- predict(neo.lognet_lasso_fit.cv,
-               newx=neo.x.pred_sample, s=neo.lognet_lasso_fit.cv$lambda.min, type="class")
-y.samp.actual <- as.matrix(neo.y[s])
+y.response <- predict(neo.lognet_lasso_fit.cv,
+               newx=neo.x.matrix, s=neo.lognet_lasso_fit.cv$lambda.min, type="response")
+y.class <- predict(neo.lognet_lasso_fit.cv,
+               newx=neo.x.matrix, s=neo.lognet_lasso_fit.cv$lambda.min, type="class")
+y.actual <- as.matrix(neo.y)
 
 # show misclassifications and response probabilities
 misclassification.comparison <- cbind(y.samp.class, y.samp.actual, y.samp.response)

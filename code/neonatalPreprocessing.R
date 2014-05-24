@@ -5,7 +5,7 @@
 ##########################################################################
 
 library("gdata")
-xls <- read.xls(xls = "~/Documents/academic/infant_blood_project/data/data2014/source/NeonatalData.xlsx",
+xls <- read.xls(xls = "./data/source/NeonatalData.xlsx",
           sheet = "No TAM", method = "tab", header = TRUE, dec = ".")
 
 # Drop unwanted columns
@@ -22,7 +22,7 @@ print(paste("Imported ", dim(data.nt)[1], " from ", dim(xls)[1], " records"))
 # TAM data
 ############
 
-xls <- read.xls(xls = "~/Documents/academic/infant_blood_project/data/data2014/source/NeonatalData.xlsx",
+xls <- read.xls(xls = "./data/source/NeonatalData.xlsx",
                 sheet = "TAM", method = "tab", header = TRUE, dec = ".")
 
 # Drop unwanted columns
