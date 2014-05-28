@@ -5,13 +5,13 @@
 ##########################################################################
 
 library("gdata")
-xls <- read.xls(xls = "./data/source/NeonatalData.xlsx",
+xls <- read.xls(xls = "../data2014/source/NeonatalData.xlsx",
           sheet = "No TAM", method = "tab", header = TRUE, dec = ".")
 
+# Drop columns at the end
+xls <- xls[,1:36]
 # Drop unwanted columns
-unwanted.cols <- c("no", "Gender","New.Number", "Gata1", "Preg.med", "Med.class",
-           "X", "Aut.Neut", "Aut.mon", "Autbas", "Aut.eo", "MPV", "Day",
-           "Preg.med.not.considered", "X.1")
+unwanted.cols <- c("no", "Gender","New.Number", "Gata1", "Preg.med", "Med.class")
 xls <- xls[,!(names(xls) %in% unwanted.cols)]
 
 data.nt <- na.omit(apply(xls, 2, as.numeric))
@@ -22,13 +22,14 @@ print(paste("Imported ", dim(data.nt)[1], " from ", dim(xls)[1], " records"))
 # TAM data
 ############
 
-xls <- read.xls(xls = "./data/source/NeonatalData.xlsx",
+xls <- read.xls(xls = "../data2014/source/NeonatalData.xlsx",
                 sheet = "TAM", method = "tab", header = TRUE, dec = ".")
 
+# Drop columns at the end
+xls <- xls[,1:36]
 # Drop unwanted columns
-unwanted.cols <- c("no", "Gender","New.Number", "Gata1", "Preg.med", "Med.class",
-                   "X", "Aut.Neut", "Aut.mon", "Autbas", "MPV", "Day",
-                   "Aut.eo","Med","Preg.med.not.considered", "X.1", "Clone.size.old")
+unwanted.cols <- c("no", "Gender","New.Number", "Gata1", "Preg.med", "Med.class")
+
 xls <- xls[,!(names(xls) %in% unwanted.cols)]
 
 data.t <- na.omit(apply(xls, 2, as.numeric))
