@@ -20,18 +20,13 @@ neo.y <- as.factor(data.df[,1])
 neo.x <- data.df[,2:32]
 neo.x.matrix <- sparse.model.matrix(object=Class~.,data=data.df)
 neo.y <- as.numeric(data.df[,1])
+neo.y[27:54]=2   # 3-class model
 neo.y.factor <- as.factor(neo.y)
 
 # for K-fold cross validation, K = 10% * n
 cv.number <- as.integer(round(0.1*length(neo.y),0))
 
-fitControl <- trainControl(
-  method = "repeatedcv",
-  number = cv.number,
-  ## number of repeats set to 10
-  repeats = 10
-  )
-
+source("./code/ibp_lognet.R")
 source("./code/ibp_svm.R")
 
 svmFit

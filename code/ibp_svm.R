@@ -6,6 +6,15 @@
 library("e1071")
 library("caret")
 library("kernlab")
+library("pROC")
+
+fitControl <- trainControl(
+  method = "repeatedcv",
+  number = cv.number,
+  ## number of repeats set to 10
+  repeats = 10,
+  classProbs=TRUE
+  )
 
 svmFit <- train(neo.x, neo.y.factor,
                 method="svmRadial",
