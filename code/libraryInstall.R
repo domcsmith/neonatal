@@ -13,5 +13,6 @@ install.packages("fields", repos=r)
 install.packages("e1071", repos=r)
 install.packages("caret", repos=r)
 install.packages("kernlab", repos=r)
+install.packages("pROC, repos=r")
 
 rm(r)
